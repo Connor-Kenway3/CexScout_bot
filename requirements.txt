@@ -3,3 +3,4 @@ beautifulsoup4==4.12.3
 python-dotenv==1.0.0
 cloudscraper==1.2.71
 deep-translator==1.11.4
+flask==3.0.3
