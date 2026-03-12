@@ -5,7 +5,7 @@ happen independently and concurrently. Adding a new exchange = one new
 ExchangeWorker instance at the bottom.
 
 Setup:
-    pip install requests beautifulsoup4 python-dotenv cloudscraper
+    pip install requests beautifulsoup4 python-dotenv cloudscraper deep-translator flask
 
 Run:
     python cexscout.py
@@ -19,6 +19,7 @@ import random
 import threading
 import requests
 import cloudscraper
+from flask import Flask
 from bs4 import BeautifulSoup
 from deep_translator import GoogleTranslator
 from dotenv import load_dotenv
@@ -43,11 +44,11 @@ HEADERS = {
     "Accept-Language": "en-US,en;q=0.9",
 }
 
-upbit_session = requests.Session()
+upbit_session    = requests.Session()
 upbit_session.headers.update(HEADERS)
 
 telegram_session = requests.Session()
-translator = GoogleTranslator(source="auto", target="en")
+translator       = GoogleTranslator(source="auto", target="en")
 
 # ── State ─────────────────────────────────────────────────────────────────────
 
@@ -179,7 +180,6 @@ class UpbitWorker(ExchangeWorker):
         )
         r.raise_for_status()
         notices = r.json().get("data", {}).get("notices", [])
-        # print(notices)
         return [
             {
                 "id":       f"upbit-{n['id']}",
@@ -222,6 +222,17 @@ class BithumbWorker(ExchangeWorker):
             for n in notices
         ]
 
+# ── Flask ─────────────────────────────────────────────────────────────────────
+
+app = Flask(__name__)
+
+@app.route("/")
+def health():
+    return "ok", 200
+
+def run_flask():
+    app.run(host="0.0.0.0", port=int(os.getenv("PORT", 8080)))
+
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main():
@@ -233,6 +244,8 @@ def main():
     ]
 
     send_telegram("CEXScout is live.")
+
+    threading.Thread(target=run_flask, daemon=True).start()
 
     for worker in workers:
         worker.start()
